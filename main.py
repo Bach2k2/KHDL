@@ -40,8 +40,8 @@ def read_file_audio2(file_name):
 
 
 # Import đường dẫn file
-AUDIO_FILE_SILENCE = FOLDER_FILE + "(Silenced)_318622__matucha__roomtone_aircon_01.wav"
-AUDIO_FILE_SPEECH = FOLDER_FILE + "(Speech)519189__inspectorj__request-42-hmm-i-dont-know.wav"
+AUDIO_FILE_SILENCE = FOLDER_FILE + "(silence)_333960__kostrava__indoor_-apartments_hall_noise-2.wav"
+AUDIO_FILE_SPEECH = FOLDER_FILE + "(speech)_222993__zyrytsounds__people-talking.wav"
 
 # read_file_audio1(AUDIO_FILE_SILENCE, "SILENCE")
 # read_file_audio1(AUDIO_FILE_SPEECH, "SPEECH")
@@ -124,26 +124,29 @@ def normalize_ste_frame(ste_frame):
 normalize_sl_ste = normalize_ste_frame(sl_ste)
 normalize_sp_ste = normalize_ste_frame(sp_ste)
 
+normalize_sl_ste = normalize_sl_ste[50:1550]
+normalize_sp_ste = normalize_sp_ste[50:1550]
+
 print("length Slience STE")
 print(len(normalize_sl_ste))
 print("length Speech STE")
 print(len(normalize_sp_ste))
-
+total_len = len(normalize_sl_ste) + len(normalize_sp_ste)
 threshold = 0.005
-
-sl_right_classified = []
-sl_fail_classified = []
-sp_right_classified = []
-sp_fail_classified = []
 
 
 def cal_cost_function():
     print("begin")
-    cost_function = 0
+
     count = 0
-    threshold = min_threshold = 0.0001  # Chọn threshold nhỏ nhất với cost_function lớn nhất
+    threshold = min_threshold = 0.040  # Chọn threshold nhỏ nhất với cost_function lớn nhất
     min_cost = len(normalize_sl_ste) + len(normalize_sp_ste)
-    while (threshold < 0.01):
+    while (threshold <= 0.05):
+        cost_function = 0
+        sl_right_classified = []
+        sl_fail_classified = []
+        sp_right_classified = []
+        sp_fail_classified = []
         count += 1
         # print("c= " + str(count))
         for sl_ste in normalize_sl_ste:
@@ -159,27 +162,36 @@ def cal_cost_function():
                 cost_function += 1
                 sp_fail_classified.append(sp_ste)
         # print("cost function: " + str(cost_function))
-
+        print("threshold=" + str(threshold))
+        print("cost =" + str(cost_function))
+        print("sl_fail: " + str(len(sl_fail_classified)))
+        print("sp_fail:" + str(len(sp_fail_classified)))
+        print()
         if min_cost > cost_function:  # Nếu min_cost mà timf thấy số nhỏ hơn: chọn
             min_threshold = threshold
             min_cost = cost_function
-            print("threshold=" + str(threshold))
-            print("cost =" + str(cost_function))
-            print("sl_fail" + str(len(sl_fail_classified)))
-            print("sp_fail" + str(len(sp_fail_classified)))
+            print("min threshold=" + str(threshold))
+            print("min cost =" + str(cost_function))
+            print("sl_fail: " + str(len(sl_fail_classified)))
+            print("sp_fail: " + str(len(sp_fail_classified)))
+            print()
         threshold += 0.0001
 
-    return min_threshold
+    return min_cost, min_threshold
 
 
-min_threshold = cal_cost_function()
+min_cost, min_threshold = cal_cost_function()
 print("End function")
-print(min_threshold)
+print(min_cost)
+print(round(min_threshold, 4))
+print("Hiệu suất chính xác %: " + str(min_cost / total_len))
 # Plot
 plt.subplot(2, 1, 1)
-plt.plot(normalize_sl_ste)  # , label="silence"
+plt.plot(normalize_sl_ste, color='blue')  # , label="silence"
+plt.axhline(y=min_threshold, color='green')
 plt.subplot(2, 1, 2)
-plt.plot(normalize_sp_ste)  # , label="speech"
+plt.plot(normalize_sp_ste, color='gray')  # , label="speech"
+plt.axhline(y=min_threshold, color='green')
 plt.xlabel("X axis")
 plt.ylabel("Y axis")
 plt.show()
